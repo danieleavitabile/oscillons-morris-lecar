@@ -86,20 +86,22 @@
       CLOSE(1)
 
       ! TEST ---------------------------------------------------------
-      !OPEN(UNIT=1,FILE="initialOscillon.dat")
+      OPEN(UNIT=1,FILE="initialOscillon.dat")
 
-      !DO ROW = 1,1024
-      !   READ(1,*) (UUU(ROW,COL),COL=1,NDIM+1)
-      !END DO
-      !CLOSE(1)
-      !DO  I=1,NDIM
-      !  UU(I) = UUU(1,I+1)
-      !  U(I)  = UU(I)
-      !END DO
+      DO ROW = 1,1024
+         READ(1,*) (UUU(ROW,COL),COL=1,NDIM+1)
+      END DO
+      CLOSE(1)
 
-      !DEFIINE FULL PROBLEM
+      ! From here onwards, change U into UU
+      ! Introduce epsi = 1e-5
+      ! READ UU From file
+      ! READ VV From file
+      ! Set UU = UU + epsi*VV
 
+      !Right-hand side
       DO  I=1,NX
+
           IV  = I
           IIN = NX + I
           IC  = 2*NX + I
@@ -110,49 +112,79 @@
           F(IIN) = RHO*R(U(IV))*(NINF(U(IV))-U(IIN))
           F(IC)  = EPSI*(-MU*(GCA*MINF(U(IV))*(U(IV)-120.0))-U(IC))
           F(IS)  = -BETA*U(IS)
+
           DO J=1,NX
 
-             JV = J
-             JN = NX + J
-             JC = 2*NX + J
-             JS = 3*NX + J
-
              F(IS) = F(IS) + W(I,J)*FR(UU(J),KAPPA,VT)*DX
-
-             DFDU(IV,JV)   =  0.0
-             DFDU(IV,JN)   =  0.0
-             DFDU(IV,JC)   =  0.0
-             DFDU(IV,JS)   =  0.0
-
-             DFDU(IV,IV)   = DFV(U(IV),U(IIN),U(IC),GKCA,GCA,V2)
-             DFDU(IV,IIN)  = DFN(U(IV),U(IIN),U(IC))
-             DFDU(IV,IC)   = DFCA(U(IV),U(IIN),U(IC),GKCA)
-             DFDU(IV,IS)   = 1.0
-
-             DFDU(IIN,IV)  = DGV(U(IV),U(IIN),U(IC),V3,V4,RHO)
-             DFDU(IIN,IIN) = DGN(U(IV),U(IIN),U(IC))
-             DFDU(IIN,IC)  = 0.0
-             DFDU(IIN,IS)  = 0.0
-
-             DFDU(IC,IV)   = DHV(U(IV),U(IIN),U(IC),EPSI,MU,GCA,V2)
-             DFDU(IC,IIN)  = 0.0
-             DFDU(IC,IC)   = -EPSI
-             DFDU(IC,IS)   = 0.0
-
-             DFDU(IS,JV)   = DX*W(IV,J)*DFR(U(JV),KAPPA,VT)
-             DFDU(IS,IIN)  = 0.0
-             DFDU(IS,IC)   = 0.0
-             DFDU(IS,IS)   = -BETA
 
           ENDDO
 
       ENDDO
 
+      !Jacobian
+      IF IJAC .EQ. 1
 
-     OPEN(UNIT=3, FILE='RESIDUAL.dat',STATUS="REPLACE",ACTION="WRITE")
-     WRITE(3,*) (F(I), I = 1, NDIM)
-     CLOSE(3)
-     STOP
+        ! Initialise to 0
+        DFDU = 0.0d0
+
+        DO  I=1,NX
+
+          IV  = I
+          IIN = NX + I
+          IC  = 2*NX + I
+          IS  = 3*NX + I
+
+          DFDU(IV,IV)   = DFV(U(IV),U(IIN),U(IC),GKCA,GCA,V2)
+          DFDU(IV,IIN)  = DFN(U(IV),U(IIN),U(IC))
+          DFDU(IV,IC)   = DFCA(U(IV),U(IIN),U(IC),GKCA)
+          DFDU(IV,IS)   = 1.0
+
+          DFDU(IIN,IV)  = DGV(U(IV),U(IIN),U(IC),V3,V4,RHO)
+          DFDU(IIN,IIN) = DGN(U(IV),U(IIN),U(IC))
+          DFDU(IIN,IC)  = 0.0
+          DFDU(IIN,IS)  = 0.0
+
+          DFDU(IC,IV)   = DHV(U(IV),U(IIN),U(IC),EPSI,MU,GCA,V2)
+          DFDU(IC,IIN)  = 0.0
+          DFDU(IC,IC)   = -EPSI
+          DFDU(IC,IS)   = 0.0
+
+          DFDU(IS,IS)   = -BETA
+
+          DO  J=1,NX
+
+            DFDU(IS,J)   = DX*W(IV,J)*DFR(U(J),KAPPA,VT)
+
+          END DO
+
+        END DO
+
+      END IF 
+
+
+      OPEN(UNIT=3, FILE='RESIDUAL.dat',STATUS="REPLACE",ACTION="WRITE")
+      WRITE(3,*) (F(I), I = 1, NDIM)
+
+      ! Write directly the jacobian matrix into a file
+
+      ! How to run the experiment:
+      ! Set epsi = 1e-4
+      ! Run the code, save Residual into a file that contains F(U+epsiV)
+      ! Set epsi = 0
+      ! Run the code, save Residual into a file that contains F(U)
+      !               save Jacobian into a file that contains J(U)
+      ! Now you have:
+      !   the vector V on a file
+      !   the vector U on a file
+      !   the vector F(U) on a file
+      !   the vector F(U+epsi*V) on a file
+      !   the matrix J(U)
+      ! 
+      !   plot F(U+epsi*V) - F(U) - epsi*J(U)*V
+      !   Calculate || F(U+epsi*V) - F(U) - epsi*J(U)*V || ->0 as epsi -> 0
+
+      CLOSE(3)
+      STOP
       !RESCALE
 
      ! DO I = 1,NDIM
@@ -208,8 +240,6 @@
       PAR(15) = MU
       PAR(16) = V2
       PAR(17) = V3
-
-      !LOAD INITIAL OSCILLON
 
 !     ----------------------------------------------------------------
       END SUBROUTINE STPNT
