@@ -1,0 +1,9 @@
+# This is an example
+b0 = run('vdp',dat='initialGuess.dat')
+save('b0')
+
+b1 = run('vdp',dat='initialGuess.dat')
+save('b1')
+
+pl(b0)
+wait()
