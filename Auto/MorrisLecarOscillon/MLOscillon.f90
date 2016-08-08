@@ -23,18 +23,18 @@
       DOUBLE PRECISION DFV,DFN,DFCA,DGV,DGN,DGCA,DHV,DHN,DHCA
 
       DOUBLE PRECISION, DIMENSION(NX,NX) :: W
-      DOUBLE PRECISION, PARAMETER :: EPSIL = 0.0d0
+      DOUBLE PRECISION, PARAMETER :: EPSIL = 0.000000000001d0
       DOUBLE PRECISION :: UU(NDIM),VEC(NDIM)
       DOUBLE PRECISION :: UUU(1024,NDIM+1)
 
 
       !AUX FUNCTIONS
       MINF(V)         = (1.0+TANH((V+1.2)/18.0))/2.0
-      NINF(V)         = (1.0+TANH((V-12)/30.0))/2.0
-      R(V)            = COSH((V-12.0)/(2.0*30.0))
-      DMINF(V,V2)     = (1.0-TANH((V+1.2)/V2)**2)/2*V2
-      DNINF(V,V3,V4)  = (1.0-TANH((V-V3)/V4)**2)/2*V4
-      DR(V,V3,V4,RHO) = (RHO/(2*V4))*SINH((V-V3)/2*V4)
+      NINF(V)         = (1.0+TANH((V-12.0)/30.0))/2.0
+      R(V,RHO)        = RHO*COSH((V-12.0)/(2.0*30.0))
+      DMINF(V,V2)     = (COSH((5.0*V+6.0)/90.0)**2)/(9.0*(1.0+COSH((5.0*V+6.0)/45.0)**2))
+      DNINF(V,V3,V4)  = (COSH((V-12.0)/30.0)**2)/(15.0*(1.0+COSH((V-12.0)/15.0)**2))
+      DR(V,V3,V4,RHO) = (RHO/60.0)*SINH((V-12.0)/60.0)
       FR(V,KAPPA,VT)  = 1.0/(1.0 + EXP(-KAPPA*(V-VT)))
       DFR(V,KAPPA,VT) = KAPPA*FR(V,KAPPA,VT)*(1.0-FR(V,KAPPA,VT))
       HILL(CA)        = CA/(CA+10.0)
@@ -46,8 +46,9 @@
       DFN(V,N,CA)                = -8.0*(V+84.0)/20.0
       DFCA(V,N,CA,GKCA)          = -GKCA*DHILL(CA)*(V+84.0)
 
-      DGV(V,N,CA,V3,V4,RHO)      = DR(V,V3,V4,RHO)*(NINF(V)-N) + R(V)*DNINF(V,V3,V4)
-      DGN(V,N,CA)                = -R(V)
+      !BUG!
+      DGV(V,N,CA,V3,V4,RHO)      = DR(V,V3,V4,RHO)*(NINF(V)-N) + R(V,RHO)*DNINF(V,V3,V4)
+      DGN(V,N,CA,RHO)            = -R(V,RHO)
       DGCA(V,N,CA)               = 0.0
 
       DHV(V,N,CA,EPSI,MU,GCA,V2) = -EPSI*MU*GCA*(DMINF(V,V2)*(V-120.0)+MINF(V))
@@ -118,7 +119,7 @@
 
           F(IV)  = UU(IS) + (-(8.0*UU(IIN) + GKCA*HILL(UU(IC)))*(UU(IV)+84.0)-2.0*(UU(IV)+60.0) &
                    -GCA*MINF(UU(IV))*(UU(IV)-120.0) + IAPP)/20.0
-          F(IIN) = RHO*R(UU(IV))*(NINF(UU(IV))-UU(IIN))
+          F(IIN) = R(UU(IV),RHO)*(NINF(UU(IV))-UU(IIN))
           F(IC)  = EPSI*(-MU*(GCA*MINF(UU(IV))*(UU(IV)-120.0))-UU(IC))
           F(IS)  = -BETA*UU(IS)
 
@@ -147,7 +148,7 @@
           DFDU(IV,IS)   = 1.0
 
           DFDU(IIN,IV)  = DGV(UU(IV),UU(IIN),UU(IC),V3,V4,RHO)
-          DFDU(IIN,IIN) = DGN(UU(IV),UU(IIN),UU(IC))
+          DFDU(IIN,IIN) = DGN(UU(IV),UU(IIN),UU(IC),RHO)
           DFDU(IIN,IC)  = 0.0
           DFDU(IIN,IS)  = 0.0
 
@@ -170,13 +171,13 @@
 
 
       !OPEN(UNIT=4, FILE='RESIDUAL.dat',STATUS="REPLACE",ACTION="WRITE")
-      OPEN(UNIT=4, FILE='F-EP1.dat',STATUS="REPLACE",ACTION="WRITE")
+      OPEN(UNIT=4, FILE='FTILDE-E12.dat',STATUS="REPLACE",ACTION="WRITE")
       WRITE(4,*) (F(I), I = 1, NDIM)
       CLOSE(4)
+      !STOP
 
       ! Write directly the jacobian matrix into a file
-
-      OPEN(UNIT=5, FILE='JAC-EP1.dat', ACTION="WRITE", STATUS="REPLACE")
+      OPEN(UNIT=5, FILE='JAC-E12.dat', ACTION="WRITE", STATUS="REPLACE")
       DO I=1,NDIM
          WRITE(5,*) (DFDU(I,J), J = 1, NDIM)
       END DO
@@ -187,7 +188,7 @@
       ! Set epsi = 1e-4
       ! Run the code, save Residual into a file that contains F(U+epsiV)
       ! Set epsi = 0
-      ! Run the code, save Residual into a file that contains F(U)
+
       !               save Jacobian into a file that contains J(U)
       ! Now you have:
       !   the vector V on a file
