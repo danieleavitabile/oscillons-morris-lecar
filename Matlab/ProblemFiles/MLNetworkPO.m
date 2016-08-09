@@ -1,4 +1,4 @@
-function F = MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp)
+function [G,DGz] = MLNetworkPO(z,p,W,x,idx,zTilde,uTemp,DtuTemp,tTemp)
 
   %% Split variables
   nU = size(z,1) - 1; iU = 1:nU; iT = nU + 1;
@@ -14,8 +14,8 @@ function F = MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp)
   [t,UHist]   = ode45(problemHandle,tspan,U,options);
 
   %% Right-hand side
-  F = zeros(size(z));
-  F(iU) = U-UHist(end,:)';
+  G = zeros(size(z));
+  G(iU) = U-UHist(end,:)';
 
   %% Phase condition
   nt = length(tTemp);
@@ -35,13 +35,20 @@ function F = MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp)
 %   figure; plot(tTemp,c0,tTemp,uTemp(2*nt + [1:nt]),'.-')
 %   figure; plot(tTemp,s0,tTemp,uTemp(3*nt + [1:nt]),'.-')
 
-
   if any(isnan(v0)) || any(isnan(n0)) || any(isnan(c0)) || any(isnan(s0))
     error('NAN in interpolation');
   end
 
-  F(iT) = DtuTemp'*([v0; n0; c0; s0] - uTemp);
+  G(iT) = DtuTemp'*([v0; n0; c0; s0] - uTemp);
 
   % PlotHistory(x,t,UHist,p,[],idx,true);
+
+  %% Jacobian-vector action
+  if nargout > 1 && ~isempty(zTilde)
+    epsi = 1e-4;
+    DG  =  MLNetworkPO(z+epsi*zTilde,p,W,x,idx,[],uTemp,DtuTemp,tTemp);
+    DGz = (DG - G)/epsi;
+  end
+
  
 end
