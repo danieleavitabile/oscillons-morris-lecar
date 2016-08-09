@@ -71,6 +71,7 @@
       V3    = PAR(17)
 
       !Right-hand side
+      PRINT *, "Evaluating RHS... with IJAC=", IJAC
       DO  I=1,NX
 
           IV  = I
@@ -89,7 +90,9 @@
            END DO
 
       ENDDO
+      PRINT *, "DONE"
 
+      PRINT *, "Evaluating RHS..."
       !Jacobian
       IF (IJAC .EQ. 1) THEN
 
@@ -129,6 +132,7 @@
         END DO
 
       END IF
+      PRINT *, "DONE"
 
       !RESCALE
       F = T*F
@@ -192,11 +196,12 @@
       PAR(17) = V3
 
       OPEN(UNIT=1,FILE="Weights.dat")
+      PRINT *, "Reading weights..."
       DO I = 1,NX
-         PRINT *, "Reading file row ", I
          READ(1,*) (W(I,J),J=1,NX)
       END DO
       CLOSE(1)
+      PRINT *, "DONE"
 
       !U = 0.0d0
       ! STOP
