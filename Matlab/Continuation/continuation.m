@@ -36,7 +36,9 @@ DtuTemp = [Dt*UHist(iT,iV(nx/2)); Dt*UHist(iT,iN(nx/2)); Dt*UHist(iT,iC(nx/2)); 
 prob    = @(z,p) MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp(iT));
 plotSol = @(z,p,parent) PlotSolution(x,z(1:end-1),p,parent,idx,false);
 F = prob(z0,p0);
-plotSol(F,p0,[]);
+
+
+% plotSol(F,p0,[]);
 % 
 % % 
 % % NeuralFieldForcedPO(u,p,wHat,x,Lx,idx,[]);
