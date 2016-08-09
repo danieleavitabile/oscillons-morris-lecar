@@ -17,7 +17,7 @@ z0 = sol.u;
 p0 = sol.p;
 
 %% Connectivity Matrix
-[W,~] = SynapticKernel(p0,x);
+[W,wHandle] = SynapticKernel(p0,x);
 
 %% Determine template for phase condition
 problemHandle    = @(t,u) MLNetwork(t,u,p,W,x,idx);
@@ -31,23 +31,17 @@ e = ones(nT,1);
 Dt = spdiags([-e e],[-1 1],nT,nT); Dt(1,nT) = -1; Dt(nT,1) = 1; Dt = Dt/ht;
 uTemp   = [UHist(iT,iV(nx/2)); UHist(iT,iN(nx/2)); UHist(iT,iC(nx/2)); UHist(iT,iS(nx/2)) ];
 DtuTemp = [Dt*UHist(iT,iV(nx/2)); Dt*UHist(iT,iN(nx/2)); Dt*UHist(iT,iC(nx/2)); Dt*UHist(iT,iS(nx/2)) ];
-% plot(tTemp(iT),uTemp(iT),tTemp(iT),DtuTemp(iT));
 
-prob    = @(z,p) MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp(iT));
-plotSol = @(z,p,parent) PlotSolution(x,z(1:end-1),p,parent,idx,false);
 % F = prob(z0,p0);
 
-
-% plotSol(F,p0,[]);
-% 
-% % 
-% NeuralFieldForcedPO(u,p,wHat,x,Lx,idx,[]);
+%% Problem Handles
+prob    = @(z,p) MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp(iT));
+plotSol = @(z,p,parent) PlotSolution(x,z(1:end-1),p,parent,idx,false);
 jac      = []; % @(u,p,v) NeuralFieldForcedPOJacobianAction(u,p,wHat,x,Lx,idx,v);
-% plotSol  = @(u,p,parent) PlotSolutionPO(u,p,parent,wHat,x,Lx,idx,true); % PlotSolution(x,u,p,parent,idx,false);
 solMeas  = @(step,u,p) SolutionMeasures(step,u,p);
 compSpec = [];%@(u,p) ComputeSpectrum(u,p,wHat,x,Lx,idx);
 plotSpec = [];%@(d,p,parent) PlotSpectrum(d,p,parent);
-% % 
+
 %% Assign problem 
 stepPars.iContPar                         = 1;
 stepPars.pMin                             = -60;
@@ -75,4 +69,4 @@ stepPars.ComputeEigenvalues               = compSpec;
 stepPars.PlotSpectrum                     = plotSpec;
 
 %% Run
-branch = SecantContinuationNewtonGMRES(prob,jac,z0,p0,stepPars);
+branch = SecantContinuationNewtonGMRES(prob,[],z0,p0,stepPars);
