@@ -2,7 +2,7 @@
 clear all, close all, clc;
 
 % Load problem files and solution
-addpath('../SecantContinuation/0.2/src');
+addpath('~/Dropbox/SecantContinuation/0.2/src');
 addpath('../ProblemFiles');
 addpath('../SolutionsDatabase');
 
