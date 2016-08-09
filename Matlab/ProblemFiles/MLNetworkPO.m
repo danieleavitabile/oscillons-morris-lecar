@@ -30,10 +30,10 @@ function F = MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp)
   c0 = interp1(t,c0,tTemp);
   s0 = interp1(t,s0,tTemp);
 
-  figure; plot(tTemp,v0,tTemp,uTemp(1:nt),'.-')
-  figure; plot(tTemp,n0,tTemp,uTemp(nt   + [1:nt]),'.-')
-  figure; plot(tTemp,c0,tTemp,uTemp(2*nt + [1:nt]),'.-')
-  figure; plot(tTemp,s0,tTemp,uTemp(3*nt + [1:nt]),'.-')
+%   figure; plot(tTemp,v0,tTemp,uTemp(1:nt),'.-')
+%   figure; plot(tTemp,n0,tTemp,uTemp(nt   + [1:nt]),'.-')
+%   figure; plot(tTemp,c0,tTemp,uTemp(2*nt + [1:nt]),'.-')
+%   figure; plot(tTemp,s0,tTemp,uTemp(3*nt + [1:nt]),'.-')
 
 
   if any(isnan(v0)) || any(isnan(n0)) || any(isnan(c0)) || any(isnan(s0))
