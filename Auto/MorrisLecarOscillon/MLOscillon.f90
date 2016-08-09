@@ -23,10 +23,7 @@
       DOUBLE PRECISION DFV,DFN,DFCA,DGV,DGN,DGCA,DHV,DHN,DHCA
 
       DOUBLE PRECISION, DIMENSION(NX,NX) :: W
-      DOUBLE PRECISION, PARAMETER :: EPSIL = 0.000000000001d0
-      DOUBLE PRECISION :: UU(NDIM),VEC(NDIM)
-      DOUBLE PRECISION :: UUU(1024,NDIM+1)
-
+      COMMON W
 
       !AUX FUNCTIONS
       MINF(V)         = (1.0+TANH((V+1.2)/18.0))/2.0
@@ -41,12 +38,10 @@
       DHILL(CA)       = 10.0/(CA+10.0)**2
 
       !JACOBIAN COMPONENT FUNCTIONS
-
       DFV(V,N,CA,GKCA,GCA,V2)    = (-8.0*N + GKCA*HILL(CA) - 2.0 -GCA*(DMINF(V,V2)*(V-120.0) + MINF(V)))/20.0
       DFN(V,N,CA)                = -8.0*(V+84.0)/20.0
       DFCA(V,N,CA,GKCA)          = -GKCA*DHILL(CA)*(V+84.0)
 
-      !BUG!
       DGV(V,N,CA,V3,V4,RHO)      = DR(V,V3,V4,RHO)*(NINF(V)-N) + R(V,RHO)*DNINF(V,V3,V4)
       DGN(V,N,CA,RHO)            = -R(V,RHO)
       DGCA(V,N,CA)               = 0.0
@@ -57,7 +52,6 @@
 
 
       !ASSIGN PARAMETERS
-
       IAPP  = PAR(1)
       RHO   = PAR(2)
       GCa   = PAR(3)
@@ -76,39 +70,6 @@
       V2    = PAR(16)
       V3    = PAR(17)
 
-
-      !READ IN COONECTIVITY MATRIX EXTERNALLY
-
-      OPEN(UNIT=1,FILE="Weights.dat")
-
-      DO ROW = 1,MAX_ROWS
-         READ(1,*) (W(ROW,COL),COL=1,NX)
-      END DO
-      CLOSE(1)
-
-      !READ IN INITIAL SOLUTION AT T=0
-      OPEN(UNIT=2,FILE="initialOscillon.dat")
-
-      DO ROW = 1,1024
-         READ(2,*) (UUU(ROW,COL),COL=1,NDIM+1)
-      END DO
-      CLOSE(2)
-
-      !DEFINE UU,VEC,UU+EPSIL*VEC
-      OPEN(UNIT=3,FILE="VVEC.dat")
-      READ(3,*) VEC
-      CLOSE(3)
-
-      DO I=1,NDIM
-         UU(I) = UUU(1,I+1) + EPSIL*VEC(I)
-      END DO
-
-      ! From here onwards, change U into UU
-      ! Introduce epsi = 1e-5
-      ! READ UU From file
-      ! READ VV From file
-      ! Set UU = UU + epsi*VV
-
       !Right-hand side
       DO  I=1,NX
 
@@ -117,20 +78,20 @@
           IC  = 2*NX + I
           IS  = 3*NX + I
 
-          F(IV)  = UU(IS) + (-(8.0*UU(IIN) + GKCA*HILL(UU(IC)))*(UU(IV)+84.0)-2.0*(UU(IV)+60.0) &
-                   -GCA*MINF(UU(IV))*(UU(IV)-120.0) + IAPP)/20.0
-          F(IIN) = R(UU(IV),RHO)*(NINF(UU(IV))-UU(IIN))
-          F(IC)  = EPSI*(-MU*(GCA*MINF(UU(IV))*(UU(IV)-120.0))-UU(IC))
-          F(IS)  = -BETA*UU(IS)
+          F(IV)  = U(IS) + (-(8.0*U(IIN) + GKCA*HILL(U(IC)))*(U(IV)+84.0)-2.0*(U(IV)+60.0) &
+                   -GCA*MINF(U(IV))*(U(IV)-120.0) + IAPP)/20.0
+          F(IIN) = R(U(IV),RHO)*(NINF(U(IV))-U(IIN))
+          F(IC)  = EPSI*(-MU*(GCA*MINF(U(IV))*(U(IV)-120.0))-U(IC))
+          F(IS)  = -BETA*U(IS)
 
            DO J=1,NX
-              F(IS) = F(IS) + W(I,J)*FR(UU(J),KAPPA,VT)*DX
+              F(IS) = F(IS) + W(I,J)*FR(U(J),KAPPA,VT)*DX
            END DO
 
       ENDDO
 
       !Jacobian
-     ! IF IJAC.EQ.1
+      IF (IJAC .EQ. 1) THEN
 
         ! Initialise to 0
         DFDU = 0.0d0
@@ -142,17 +103,17 @@
           IC  = 2*NX + I
           IS  = 3*NX + I
 
-          DFDU(IV,IV)   = DFV(UU(IV),UU(IIN),UU(IC),GKCA,GCA,V2)
-          DFDU(IV,IIN)  = DFN(UU(IV),UU(IIN),UU(IC))
-          DFDU(IV,IC)   = DFCA(UU(IV),UU(IIN),UU(IC),GKCA)
+          DFDU(IV,IV)   = DFV(U(IV),U(IIN),U(IC),GKCA,GCA,V2)
+          DFDU(IV,IIN)  = DFN(U(IV),U(IIN),U(IC))
+          DFDU(IV,IC)   = DFCA(U(IV),U(IIN),U(IC),GKCA)
           DFDU(IV,IS)   = 1.0
 
-          DFDU(IIN,IV)  = DGV(UU(IV),UU(IIN),UU(IC),V3,V4,RHO)
-          DFDU(IIN,IIN) = DGN(UU(IV),UU(IIN),UU(IC),RHO)
+          DFDU(IIN,IV)  = DGV(U(IV),U(IIN),U(IC),V3,V4,RHO)
+          DFDU(IIN,IIN) = DGN(U(IV),U(IIN),U(IC),RHO)
           DFDU(IIN,IC)  = 0.0
           DFDU(IIN,IS)  = 0.0
 
-          DFDU(IC,IV)   = DHV(UU(IV),UU(IIN),UU(IC),EPSI,MU,GCA,V2)
+          DFDU(IC,IV)   = DHV(U(IV),U(IIN),U(IC),EPSI,MU,GCA,V2)
           DFDU(IC,IIN)  = 0.0
           DFDU(IC,IC)   = -EPSI
           DFDU(IC,IS)   = 0.0
@@ -161,50 +122,19 @@
 
           DO  J=1,NX
 
-            DFDU(IS,J)   = DX*W(IV,J)*DFR(UU(J),KAPPA,VT)
+            DFDU(IS,J)   = DX*W(IV,J)*DFR(U(J),KAPPA,VT)
 
           END DO
 
         END DO
 
-      !END IF
-
-
-      !OPEN(UNIT=4, FILE='RESIDUAL.dat',STATUS="REPLACE",ACTION="WRITE")
-      OPEN(UNIT=4, FILE='FTILDE-E12.dat',STATUS="REPLACE",ACTION="WRITE")
-      WRITE(4,*) (F(I), I = 1, NDIM)
-      CLOSE(4)
-      !STOP
-
-      ! Write directly the jacobian matrix into a file
-      OPEN(UNIT=5, FILE='JAC-E12.dat', ACTION="WRITE", STATUS="REPLACE")
-      DO I=1,NDIM
-         WRITE(5,*) (DFDU(I,J), J = 1, NDIM)
-      END DO
-      CLOSE(5)
-      STOP
-
-      ! How to run the experiment:
-      ! Set epsi = 1e-4
-      ! Run the code, save Residual into a file that contains F(U+epsiV)
-      ! Set epsi = 0
-
-      !               save Jacobian into a file that contains J(U)
-      ! Now you have:
-      !   the vector V on a file
-      !   the vector U on a file
-      !   the vector F(U) on a file
-      !   the vector F(U+epsi*V) on a file
-      !   the matrix J(U)
-      !
-      !   plot F(U+epsi*V) - F(U) - epsi*J(U)*V
-      !   Calculate || F(U+epsi*V) - F(U) - epsi*J(U)*V || ->0 as epsi -> 0
+      END IF
 
       !RESCALE
-
-     ! DO I = 1,NDIM
-     !   F(I) = T*F(I)
-     ! ENDDO
+      F = T*F
+      IF (IJAC .EQ. 1) THEN
+        DFDU = T*DFDU
+      ENDIF
 
 !     -----------------------------------------------------------------
       END SUBROUTINE FUNC
@@ -219,7 +149,12 @@
       DOUBLE PRECISION, INTENT(IN) :: T
       DOUBLE PRECISION IAPP,GCA,SPEED,BETA,RHO,VT,KAPPA,A,B
       DOUBLE PRECISION V2,V3,V4,GKCA,KCA,EPSI,MU
-      INTEGER :: I
+
+      INTEGER, PARAMETER :: NX = 460
+      INTEGER :: I,J
+
+      DOUBLE PRECISION, DIMENSION(NX,NX) :: W
+      COMMON W
 
       IAPP   = 150
       RHO   = 0.13
@@ -255,6 +190,16 @@
       PAR(15) = MU
       PAR(16) = V2
       PAR(17) = V3
+
+      OPEN(UNIT=1,FILE="Weights.dat")
+      DO I = 1,NX
+         PRINT *, "Reading file row ", I
+         READ(1,*) (W(I,J),J=1,NX)
+      END DO
+      CLOSE(1)
+
+      !U = 0.0d0
+      ! STOP
 
 !     ----------------------------------------------------------------
       END SUBROUTINE STPNT
