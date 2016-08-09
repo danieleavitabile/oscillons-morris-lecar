@@ -2,7 +2,7 @@
 clear all, close all, clc;
 
 % Load problem files and solution
-addpath('~/Dropbox/SecantContinuation/0.2/src');
+addpath('../SecantContinuation/0.2/src');
 addpath('../ProblemFiles');
 addpath('../SolutionsDatabase');
 
@@ -35,44 +35,44 @@ DtuTemp = [Dt*UHist(iT,iV(nx/2)); Dt*UHist(iT,iN(nx/2)); Dt*UHist(iT,iC(nx/2)); 
 
 prob    = @(z,p) MLNetworkPO(z,p,W,x,idx,uTemp,DtuTemp,tTemp(iT));
 plotSol = @(z,p,parent) PlotSolution(x,z(1:end-1),p,parent,idx,false);
-F = prob(z0,p0);
+% F = prob(z0,p0);
 
 
 % plotSol(F,p0,[]);
 % 
 % % 
-% % NeuralFieldForcedPO(u,p,wHat,x,Lx,idx,[]);
-% % jac      = @(u,p,v) NeuralFieldForcedPOJacobianAction(u,p,wHat,x,Lx,idx,v);
-% % plotSol  = @(u,p,parent) PlotSolutionPO(u,p,parent,wHat,x,Lx,idx,true); % PlotSolution(x,u,p,parent,idx,false);
-% % solMeas  = @(step,u,p) SolutionMeasures(step,u,p,x,idx,'periodic');
-% % compSpec = [];%@(u,p) ComputeSpectrum(u,p,wHat,x,Lx,idx);
-% % plotSpec = [];%@(d,p,parent) PlotSpectrum(d,p,parent);
+% NeuralFieldForcedPO(u,p,wHat,x,Lx,idx,[]);
+jac      = []; % @(u,p,v) NeuralFieldForcedPOJacobianAction(u,p,wHat,x,Lx,idx,v);
+% plotSol  = @(u,p,parent) PlotSolutionPO(u,p,parent,wHat,x,Lx,idx,true); % PlotSolution(x,u,p,parent,idx,false);
+solMeas  = @(step,u,p) SolutionMeasures(step,u,p);
+compSpec = [];%@(u,p) ComputeSpectrum(u,p,wHat,x,Lx,idx);
+plotSpec = [];%@(d,p,parent) PlotSpectrum(d,p,parent);
 % % 
-% % %% Assign problem 
-% % stepPars.iContPar                         = 3;
-% % stepPars.pMin                             = -60;
-% % stepPars.pMax                             = 60;
-% % stepPars.s0                               = -0.8;
-% % stepPars.sMin                             =  0.008;
-% % stepPars.sMax                             =  1.0;
-% % stepPars.maxSteps                         = 20000;
-% % stepPars.nPrint                           = 1;
-% % stepPars.nSaveSol                         = 1;
-% % stepPars.finDiffEps                       = 1e-5;
-% % stepPars.optNonlinIter                    = 5;
-% % stepPars.NewtonGMRESOptions.nonlinTol     = 1e-7;
-% % stepPars.NewtonGMRESOptions.nonlinMaxIter = 7;
-% % stepPars.NewtonGMRESOptions.linTol        = 1e-3;
-% % stepPars.NewtonGMRESOptions.linrestart    = 1000;
-% % stepPars.NewtonGMRESOptions.linmaxit      = 50;
-% % stepPars.NewtonGMRESOptions.damping       = 1.0;
-% % stepPars.NewtonGMRESOptions.display       = 1;
-% % stepPars.dataFolder                       = 'Data';
-% % stepPars.PlotSolution                     = plotSol;
-% % stepPars.BranchVariables                  = solMeas;
-% % stepPars.PlotBranchVariableId             = 4;
-% % stepPars.ComputeEigenvalues               = compSpec;
-% % stepPars.PlotSpectrum                     = plotSpec;
-% % 
-% % %% Run
-% % branch = SecantContinuationNewtonGMRES(prob,jac,u0,p0,stepPars);
+%% Assign problem 
+stepPars.iContPar                         = 1;
+stepPars.pMin                             = -60;
+stepPars.pMax                             = 200;
+stepPars.s0                               = -0.001;
+stepPars.sMin                             =  0.008;
+stepPars.sMax                             =  1.0;
+stepPars.maxSteps                         = 20000;
+stepPars.nPrint                           = 1;
+stepPars.nSaveSol                         = 1;
+stepPars.finDiffEps                       = 1e-5;
+stepPars.optNonlinIter                    = 5;
+stepPars.NewtonGMRESOptions.nonlinTol     = 1e-7;
+stepPars.NewtonGMRESOptions.nonlinMaxIter = 7;
+stepPars.NewtonGMRESOptions.linTol        = 1e-3;
+stepPars.NewtonGMRESOptions.linrestart    = 1000;
+stepPars.NewtonGMRESOptions.linmaxit      = 50;
+stepPars.NewtonGMRESOptions.damping       = 1.0;
+stepPars.NewtonGMRESOptions.display       = 1;
+stepPars.dataFolder                       = 'Data';
+stepPars.PlotSolution                     = plotSol;
+stepPars.BranchVariables                  = solMeas;
+stepPars.PlotBranchVariableId             = 4;
+stepPars.ComputeEigenvalues               = compSpec;
+stepPars.PlotSpectrum                     = plotSpec;
+
+%% Run
+branch = SecantContinuationNewtonGMRES(prob,jac,z0,p0,stepPars);
